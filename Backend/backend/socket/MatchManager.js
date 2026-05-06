@@ -34,10 +34,13 @@ class MatchManager {
                 return;
             }
 
-            // Check if partner is still connected (optional but good practice)
-            // Assuming handleDisconnect cleans queue, so partner should be valid.
+            // Get usernames
+            const socket1 = this.io.sockets.sockets.get(socketId);
+            const socket2 = this.io.sockets.sockets.get(partnerId);
+            const user1Name = socket1?.user?.username || "Guest";
+            const user2Name = socket2?.user?.username || "Guest";
 
-            this.createRoom(socketId, partnerId);
+            this.createRoom(socketId, partnerId, user1Name, user2Name);
         } else {
             // Requirement: Push socket
             this.waitingQueue.push(socketId);
@@ -45,16 +48,16 @@ class MatchManager {
         }
     }
 
-    createRoom(user1Id, user2Id) {
-        console.log(`[MATCH] Creating room: ${user1Id} <-> ${user2Id}`);
+    createRoom(user1Id, user2Id, user1Name, user2Name) {
+        console.log(`[MATCH] Creating room: ${user1Id} (${user1Name}) <-> ${user2Id} (${user2Name})`);
 
         // Requirement: Map both in activeRooms
         this.activeRooms.set(user1Id, user2Id);
         this.activeRooms.set(user2Id, user1Id);
 
-        // Requirement: Emit match-found to both
-        this.io.to(user1Id).emit("match-found", { peerId: user2Id, isCaller: true });
-        this.io.to(user2Id).emit("match-found", { peerId: user1Id, isCaller: false });
+        // Requirement: Emit match-found to both (including usernames)
+        this.io.to(user1Id).emit("match-found", { peerId: user2Id, peerName: user2Name, isCaller: true });
+        this.io.to(user2Id).emit("match-found", { peerId: user1Id, peerName: user1Name, isCaller: false });
 
         this.logState();
     }
